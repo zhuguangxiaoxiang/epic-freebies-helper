@@ -116,46 +116,171 @@ def _normalize_glm_response_text(text: str) -> str:
     return stripped
 
 
+def _extract_drag_points_from_text(text: str) -> tuple[dict[str, int], dict[str, int]] | None:
+    stripped = text.strip()
+    if not stripped:
+        return None
+
+    source_target_array = re.search(
+        r'"source"\s*:\s*\[\s*(\d+)\s*,\s*(\d+)\s*\][\s\S]*?"target"\s*:\s*\[\s*(\d+)\s*,\s*(\d+)\s*\]',
+        stripped,
+        flags=re.IGNORECASE,
+    )
+    if source_target_array:
+        sx, sy, tx, ty = map(int, source_target_array.groups())
+        return ({"x": sx, "y": sy}, {"x": tx, "y": ty})
+
+    source_target_object = re.search(
+        r'"source"\s*:\s*\{\s*"x"\s*:\s*(\d+)\s*,\s*"y"\s*:\s*(\d+)\s*\}[\s\S]*?"target"\s*:\s*\{\s*"x"\s*:\s*(\d+)\s*,\s*"y"\s*:\s*(\d+)\s*\}',
+        stripped,
+        flags=re.IGNORECASE,
+    )
+    if source_target_object:
+        sx, sy, tx, ty = map(int, source_target_object.groups())
+        return ({"x": sx, "y": sy}, {"x": tx, "y": ty})
+
+    source_position = re.search(
+        r"Source Position:\s*\((\d+)\s*,\s*(\d+)\)\s*,\s*Target Position:\s*\((\d+)\s*,\s*(\d+)\)",
+        stripped,
+        flags=re.IGNORECASE,
+    )
+    if source_position:
+        sx, sy, tx, ty = map(int, source_position.groups())
+        return ({"x": sx, "y": sy}, {"x": tx, "y": ty})
+
+    point_pairs = re.findall(r"\((\d+)\s*,\s*(\d+)\)", stripped)
+    if len(point_pairs) == 2:
+        (sx, sy), (tx, ty) = point_pairs
+        return ({"x": int(sx), "y": int(sy)}, {"x": int(tx), "y": int(ty)})
+
+    return None
+
+
+def _coerce_point(value: Any) -> dict[str, int] | None:
+    if isinstance(value, dict):
+        if "x" in value and "y" in value:
+            return {"x": int(value["x"]), "y": int(value["y"])}
+        return None
+
+    if isinstance(value, (list, tuple)) and len(value) >= 2:
+        return {"x": int(value[0]), "y": int(value[1])}
+
+    if isinstance(value, str):
+        match = re.search(r"(\d+)\s*,\s*(\d+)", value)
+        if match:
+            x, y = map(int, match.groups())
+            return {"x": x, "y": y}
+
+    return None
+
+
+def _build_drag_payload(
+    source: Any,
+    target: Any,
+    *,
+    challenge_prompt: str = "",
+    inferred_rule: str = "",
+) -> dict[str, Any] | None:
+    start_point = _coerce_point(source)
+    end_point = _coerce_point(target)
+    if not start_point or not end_point:
+        return None
+
+    return {
+        "challenge_prompt": challenge_prompt,
+        "inferred_rule": inferred_rule,
+        "paths": [{"start_point": start_point, "end_point": end_point}],
+    }
+
+
+def _normalize_glm_answer_value(
+    value: Any,
+    *,
+    challenge_prompt: str = "",
+    inferred_rule: str = "",
+) -> dict[str, Any] | None:
+    if isinstance(value, dict):
+        return _normalize_glm_payload(
+            {
+                **value,
+                "challenge_prompt": value.get("challenge_prompt", challenge_prompt),
+                "inferred_rule": value.get("inferred_rule", inferred_rule),
+            }
+        )
+
+    if not isinstance(value, str):
+        return None
+
+    stripped = value.strip()
+    if not stripped:
+        return None
+
+    points = _extract_drag_points_from_text(stripped)
+    if points:
+        return _build_drag_payload(
+            points[0],
+            points[1],
+            challenge_prompt=challenge_prompt,
+            inferred_rule=inferred_rule,
+        )
+
+    normalized_text = _normalize_glm_response_text(stripped)
+    with suppress(Exception):
+        payload = _extract_json_payload(normalized_text)
+        return _normalize_glm_payload(
+            {
+                **payload,
+                "challenge_prompt": payload.get("challenge_prompt", challenge_prompt),
+                "inferred_rule": payload.get("inferred_rule", inferred_rule),
+            }
+        )
+
+    return None
+
+
 def _normalize_glm_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    challenge_prompt = str(payload.get("challenge_prompt") or "")
+    inferred_rule = str(payload.get("inferred_rule") or "")
+
+    normalized_answer = _normalize_glm_answer_value(
+        payload.get("answer"),
+        challenge_prompt=challenge_prompt,
+        inferred_rule=inferred_rule,
+    )
+    if normalized_answer:
+        return normalized_answer
+
     if "source" in payload and "target" in payload:
-        source = payload.get("source") or {}
-        target = payload.get("target") or {}
-        return {
-            "challenge_prompt": payload.get("challenge_prompt", ""),
-            "inferred_rule": payload.get("inferred_rule", ""),
-            "paths": [
-                {
-                    "start_point": {
-                        "x": int(source.get("x", 0)),
-                        "y": int(source.get("y", 0)),
-                    },
-                    "end_point": {
-                        "x": int(target.get("x", 0)),
-                        "y": int(target.get("y", 0)),
-                    },
-                }
-            ],
-        }
+        normalized = _build_drag_payload(
+            payload.get("source"),
+            payload.get("target"),
+            challenge_prompt=challenge_prompt,
+            inferred_rule=inferred_rule,
+        )
+        if normalized:
+            return normalized
 
     if "from" in payload and "to" in payload:
-        source = payload.get("from") or {}
-        target = payload.get("to") or {}
-        return {
-            "challenge_prompt": payload.get("challenge_prompt", ""),
-            "inferred_rule": payload.get("inferred_rule", ""),
-            "paths": [
-                {
-                    "start_point": {
-                        "x": int(source.get("x", 0)),
-                        "y": int(source.get("y", 0)),
-                    },
-                    "end_point": {
-                        "x": int(target.get("x", 0)),
-                        "y": int(target.get("y", 0)),
-                    },
-                }
-            ],
-        }
+        normalized = _build_drag_payload(
+            payload.get("from"),
+            payload.get("to"),
+            challenge_prompt=challenge_prompt,
+            inferred_rule=inferred_rule,
+        )
+        if normalized:
+            return normalized
+
+    raw_text = json.dumps(payload, ensure_ascii=False)
+    points = _extract_drag_points_from_text(raw_text)
+    if points:
+        normalized = _build_drag_payload(
+            points[0],
+            points[1],
+            challenge_prompt=challenge_prompt,
+            inferred_rule=inferred_rule,
+        )
+        if normalized:
+            return normalized
 
     return payload
 
