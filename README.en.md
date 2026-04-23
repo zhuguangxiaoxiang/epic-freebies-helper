@@ -23,6 +23,8 @@ If you do not have a Zhipu account yet, you can register through this invite lin
 
 Community discussion and feedback are welcome on [LINUX DO](https://linux.do/t/topic/2036835/4).
 
+If the project worked for you, feel free to leave a message here too: [🎉 Success Stories / Successful runs](https://github.com/Ronchy2000/epic-freebies-helper/discussions/3).
+
 ---
 
 ## Feature Overview

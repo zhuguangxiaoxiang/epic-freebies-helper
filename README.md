@@ -23,6 +23,8 @@
 
 社区交流与反馈欢迎前往：[LINUX DO](https://linux.do/t/topic/2036835/4)。
 
+如果你已经成功跑通，也欢迎来这里留言打卡：[🎉 成功反馈 / Success Stories](https://github.com/Ronchy2000/epic-freebies-helper/discussions/3)。
+
 ---
 
 ## 功能概览
