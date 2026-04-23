@@ -1,0 +1,84 @@
+name: Bug 反馈（中文）
+description: 提交登录失败、验证码失败、checkout 卡住、误报成功/失败等问题
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先完成下面几步：
+
+        1. 打开出问题的 GitHub Actions 运行页面。
+        2. 滚动到运行页面底部。
+        3. 下载这两个 Artifact：
+           - `epic-logs-<run_id>.zip`
+           - `epic-runtime-<run_id>.zip`
+        4. 创建本 issue 后，把这两个 zip 文件直接拖进 issue 编辑框，或者点击附件按钮上传。
+
+        请不要只粘贴一小段日志。很多 checkout、验证码、页面状态问题，必须结合完整 artifact 才能正确定位。
+
+  - type: input
+    id: workflow_run_url
+    attributes:
+      label: GitHub Actions 运行链接
+      description: 粘贴本次失败或异常运行的完整链接
+      placeholder: https://github.com/<your-account>/<your-repo>/actions/runs/1234567890
+    validations:
+      required: true
+
+  - type: dropdown
+    id: problem_type
+    attributes:
+      label: 问题类型
+      options:
+        - 登录失败
+        - 验证码失败
+        - Checkout 失败
+        - 工作流显示成功，但游戏没有入库
+        - 游戏实际上已经领取，但脚本没有识别出来
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 发生了什么？
+      description: 简要描述实际结果，以及你原本预期的结果
+      placeholder: 例如：工作流运行了很久，最后结束时游戏其实已经在库里，但日志仍然显示失败。
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 请尽量简洁明确，并说明是手动运行还是定时运行
+      placeholder: |
+        1. Fork 仓库
+        2. 配置 Secrets
+        3. 手动运行 workflow
+        4. 问题出现在登录 / checkout / Place Order 之后
+    validations:
+      required: true
+
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: 必传附件
+      description: 创建 issue 后，请把这两个 zip 拖进 issue 正文或第一条评论中
+      value: |
+        请上传这两个文件：
+        - epic-logs-<run_id>.zip
+        - epic-runtime-<run_id>.zip
+
+        如果你还没有上传这两个文件，请先上传，再提交 issue。
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他补充信息
+      description: 可选。可以补充截图、怀疑原因、账号环境信息等。

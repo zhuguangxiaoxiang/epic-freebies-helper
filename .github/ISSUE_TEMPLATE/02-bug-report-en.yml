@@ -1,5 +1,5 @@
-name: Bug report
-description: Report a failed claim, login problem, or checkout/captcha issue
+name: Bug report (English)
+description: Report a failed claim, login problem, captcha issue, or checkout problem
 title: "[Bug] "
 labels:
   - bug
@@ -35,7 +35,7 @@ body:
         - Login failed
         - Captcha failed
         - Checkout failed
-        - Workflow showed success but game was not claimed
+        - Workflow showed success but the game was not claimed
         - The game was already claimed but the script did not recognize it
         - Other
     validations:
@@ -46,7 +46,7 @@ body:
     attributes:
       label: What happened?
       description: Describe the actual behavior and what you expected instead
-      placeholder: The workflow kept running for a long time and then stopped, but the game was already in library / not in library / etc.
+      placeholder: For example, the workflow kept running for a long time and then finished, but the game was already in the library / was still missing / etc.
     validations:
       required: true
 
@@ -54,7 +54,7 @@ body:
     id: reproduction
     attributes:
       label: Steps to reproduce
-      description: Short, concrete steps. Include whether this was a manual run or scheduled run.
+      description: Keep the steps short and concrete. Include whether this was a manual run or a scheduled run.
       placeholder: |
         1. Forked the repo
         2. Configured secrets
@@ -73,7 +73,7 @@ body:
         - epic-logs-<run_id>.zip
         - epic-runtime-<run_id>.zip
 
-        If you did not attach both files yet, please stop here and upload them first.
+        If you did not attach both files yet, please upload them before submitting the issue.
     validations:
       required: true
 
