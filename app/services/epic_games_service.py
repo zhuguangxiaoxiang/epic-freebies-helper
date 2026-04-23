@@ -220,6 +220,12 @@ class EpicGames:
         return ""
 
     @staticmethod
+    async def _is_locator_visible(locator, timeout: int = 300) -> bool:
+        with suppress(Exception):
+            return await locator.first.is_visible(timeout=timeout)
+        return False
+
+    @staticmethod
     async def _click_visible_continue_button(page: Page) -> bool:
         candidates = [
             page.get_by_role("button", name="Continue"),
@@ -291,9 +297,35 @@ class EpicGames:
         combined_text = await EpicGames._combined_text(page)
         button_text = await EpicGames._purchase_button_text(page)
 
+        visible_order_confirmation = [
+            page.get_by_text("Thanks for your order", exact=False),
+            page.get_by_text("Thank you for your order", exact=False),
+        ]
+        visible_order_supporting = [
+            page.get_by_text("Order number", exact=False),
+            page.get_by_text("Ready to install your product", exact=False),
+            page.get_by_text("Continue browsing", exact=False),
+            page.get_by_text("Download launcher", exact=False),
+        ]
+
+        if any(
+            [
+                await EpicGames._is_locator_visible(locator)
+                for locator in visible_order_confirmation
+            ]
+        ) and any(
+            [
+                await EpicGames._is_locator_visible(locator)
+                for locator in visible_order_supporting
+            ]
+        ):
+            return "visible checkout order confirmation modal"
+
         order_popup_markers = [
             ("THANK YOU FOR YOUR ORDER", "ORDER NUMBER"),
             ("THANK YOU FOR YOUR ORDER", "READY TO INSTALL YOUR PRODUCT"),
+            ("THANKS FOR YOUR ORDER", "ORDER NUMBER"),
+            ("THANKS FOR YOUR ORDER", "READY TO INSTALL YOUR PRODUCT"),
         ]
         page_claim_markers = [
             "ORDER CONFIRMED",
@@ -502,8 +534,8 @@ class EpicGames:
                 if await locator.first.is_visible(timeout=300):
                     return True
 
-        combined_text = await EpicGames._combined_text(page)
-        return any(marker in combined_text for marker in markers)
+        page_text = await EpicGames._page_text(page)
+        return any(marker in page_text for marker in markers)
 
     async def _resolve_checkout_security_check(
         self, page: Page, agent: AgentV, url: str, max_wait_ms: int = 600000
